@@ -1,13 +1,18 @@
+import 'dart:io';
+import 'dart:typed_data';
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_hsvcolor_picker/flutter_hsvcolor_picker.dart';
 import 'package:flutter_painter_v2/flutter_painter.dart';
 import 'package:iec_developer_test/pages/painting/components/painter_widget.dart';
+import 'package:path_provider/path_provider.dart';
 
 enum BottomNavigationType {
   paint(0),
   erase(1),
   sticker(2),
-  normal(3);
+  idle(3);
 
   final int value;
 
@@ -22,7 +27,7 @@ enum BottomNavigationType {
       case 2:
         return sticker;
       default:
-        return normal;
+        return idle;
     }
   }
 }
@@ -38,7 +43,7 @@ class _HomePageState extends State<PaintingPage> {
   final GlobalKey<PainterWidgetState> _painterKey =
       GlobalKey<PainterWidgetState>();
   bool _canScroll = true;
-  int _bottomNavigationBarSelectedIndex = BottomNavigationType.normal.value;
+  int _bottomNavigationBarSelectedIndex = BottomNavigationType.idle.value;
 
   PainterWidgetState get _painterState =>
       _painterKey.currentState ?? PainterWidgetState();
@@ -80,6 +85,14 @@ class _HomePageState extends State<PaintingPage> {
           ],
         );
       },
+    );
+  }
+
+  void _showSnackBar(String content) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(content),
+      ),
     );
   }
 
@@ -125,40 +138,71 @@ class _HomePageState extends State<PaintingPage> {
         ],
       ),
       backgroundColor: Colors.grey[200],
-      body: Column(
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              physics: _canScroll
-                  ? const ClampingScrollPhysics()
-                  : const NeverScrollableScrollPhysics(),
-              child: Column(
-                children: [
-                  const SizedBox(height: 8),
-                  Listener(
-                    onPointerDown: (event) {
-                      setState(() {
-                        _canScroll = false;
-                      });
-                    },
-                    onPointerUp: (event) {
-                      setState(() {
-                        _canScroll = true;
-                      });
-                    },
-                    child: PainterWidget(key: _painterKey),
-                  ),
-                ],
+      body: Center(
+        child: Column(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                physics: _canScroll
+                    ? const ClampingScrollPhysics()
+                    : const NeverScrollableScrollPhysics(),
+                child: Column(
+                  children: [
+                    const SizedBox(height: 8),
+                    Listener(
+                      onPointerDown: (event) {
+                        setState(() {
+                          _canScroll = false;
+                        });
+                      },
+                      onPointerUp: (event) {
+                        setState(() {
+                          _canScroll = true;
+                        });
+                      },
+                      child: PainterWidget(key: _painterKey),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-          if (_shouldShowPaintControl) _paintControlWidget(),
-        ],
+            if (_shouldShowPaintControl) _paintControlWidget(),
+          ],
+        ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {},
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
+        onPressed: () async {
+          final imageBytes = await _painterState.controller
+              .renderImage(const Size(512, 512))
+              .then<Uint8List?>((ui.Image image) => image.pngBytes);
+
+          if (imageBytes != null) {
+            String path = '';
+            try {
+              Directory? directory = Directory('/storage/emulated/0/Download');
+              if (Platform.isIOS) {
+                directory = await getDownloadsDirectory();
+              }
+              if (directory != null) {
+                String directoryPath = '${directory.path}/iec_images';
+                // Create the directory if it doesn't exist
+                await Directory(directoryPath).create(recursive: true);
+                final timestamp = DateTime.now().millisecondsSinceEpoch;
+                String filePath = '$directoryPath/$timestamp.png';
+                final file = await File(filePath).writeAsBytes(imageBytes);
+                path = file.path;
+                _showSnackBar('Saved: $path');
+              } else {
+                throw Exception('Directory does not exist!');
+              }
+            } catch (e) {
+              _showSnackBar('Image saving error: $e');
+              debugPrint(e.toString());
+            }
+          }
+        },
+        tooltip: 'Save Image',
+        child: const Icon(Icons.image),
       ),
       bottomNavigationBar: BottomNavigationBar(
         onTap: (index) async {
@@ -167,6 +211,7 @@ class _HomePageState extends State<PaintingPage> {
           });
 
           final type = BottomNavigationType.fromInt(index);
+          _painterState.showStickerTab(false);
 
           switch (type) {
             case BottomNavigationType.paint:
@@ -176,12 +221,8 @@ class _HomePageState extends State<PaintingPage> {
               _painterState.setFreeStyleErase();
               break;
             case BottomNavigationType.sticker:
-              await _painterState.addSticker();
-              setState(() {
-                _bottomNavigationBarSelectedIndex =
-                    BottomNavigationType.normal.index;
-              });
-            case BottomNavigationType.normal:
+              _painterState.showStickerTab(true);
+            case BottomNavigationType.idle:
               _painterState.setFreeStyleNone();
               break;
             default:
@@ -208,7 +249,7 @@ class _HomePageState extends State<PaintingPage> {
             icon: Icon(Icons.pinch),
           ),
           BottomNavigationBarItem(
-            label: 'Normal',
+            label: 'Idle',
             icon: Icon(Icons.not_interested_sharp),
           ),
         ],

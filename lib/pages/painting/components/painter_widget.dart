@@ -13,7 +13,7 @@ class PainterWidget extends StatefulWidget {
 class PainterWidgetState extends State<PainterWidget> {
   final PainterController _controller = PainterController();
 
-  final List<String> imagesLinks = [
+  final List<String> _imagesLinks = [
     'https://cdn-icons-png.flaticon.com/256/5020/5020313.png',
     'https://cdn-icons-png.flaticon.com/256/5020/5020369.png',
     'https://cdn-icons-png.flaticon.com/256/5020/5020545.png',
@@ -23,17 +23,20 @@ class PainterWidgetState extends State<PainterWidget> {
     'https://cdn-icons-png.flaticon.com/256/5020/5020323.png',
   ];
 
+  bool _isStickerSelecting = false;
+
   PainterController get controller => _controller;
 
   @override
   void initState() {
     _initPainter();
-    setFreeStyleDraw();
+    setFreeStyleNone();
     super.initState();
   }
 
   void _initPainter() {
     _controller.freeStyleStrokeWidth = 5;
+    _controller.background = const ColorBackgroundDrawable(color: Colors.white);
   }
 
   void setFreeStyleDraw() {
@@ -69,48 +72,12 @@ class PainterWidgetState extends State<PainterWidget> {
     }
   }
 
-  Future<void> addSticker() async {
-    final imageLink = await _showStickerDialog();
-    if (imageLink == null) return;
-    _controller.addImage(
-        await NetworkImage(imageLink).image, const Size(100, 100));
-    setFreeStyleNone();
-  }
-
-  Future<String?> _showStickerDialog() {
-    return showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text("Select sticker"),
-          content: imagesLinks.isEmpty
-              ? const Text("No images")
-              : FractionallySizedBox(
-                  heightFactor: 0.5,
-                  child: SingleChildScrollView(
-                    child: Wrap(
-                      children: [
-                        for (final imageLink in imagesLinks)
-                          InkWell(
-                            onTap: () => Navigator.pop(context, imageLink),
-                            child: FractionallySizedBox(
-                              widthFactor: 1 / 4,
-                              child: Image.network(imageLink),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                ),
-          actions: [
-            TextButton(
-              child: const Text("Cancel"),
-              onPressed: () => Navigator.pop(context),
-            )
-          ],
-        );
-      },
-    );
+  void showStickerTab(bool isStickerSelecting) {
+    if (_isStickerSelecting != isStickerSelecting) {
+      setState(() {
+        _isStickerSelecting = isStickerSelecting;
+      });
+    }
   }
 
   @override
@@ -120,17 +87,47 @@ class PainterWidgetState extends State<PainterWidget> {
     final frameSize = min(width, height) - 16;
     return Column(
       children: [
-        FlutterPainter.builder(
-          controller: _controller,
-          builder: (context, painter) {
-            return Container(
-              decoration: const BoxDecoration(color: Colors.white),
-              width: frameSize,
-              height: frameSize,
-              child: painter,
+        DragTarget<String>(
+          builder: (context, candidateItems, rejectedItems) {
+            return FlutterPainter.builder(
+              controller: _controller,
+              builder: (context, painter) {
+                return SizedBox(
+                  width: frameSize,
+                  height: frameSize,
+                  child: painter,
+                );
+              },
             );
           },
+          onAcceptWithDetails: (details) async {
+            final imageUrl = details.data;
+            _controller.addImage(
+              await NetworkImage(imageUrl).image,
+              const Size(100, 100),
+            );
+            setFreeStyleNone();
+          },
         ),
+        if (_isStickerSelecting)
+          GridView.builder(
+            shrinkWrap: true,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 4,
+            ),
+            itemBuilder: (context, index) {
+              return LongPressDraggable<String>(
+                data: _imagesLinks[index],
+                feedback: Image.network(
+                  _imagesLinks[index],
+                  width: 100,
+                  height: 100,
+                ),
+                child: Image.network(_imagesLinks[index]),
+              );
+            },
+            itemCount: _imagesLinks.length,
+          ),
       ],
     );
   }
