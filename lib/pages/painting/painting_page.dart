@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hsvcolor_picker/flutter_hsvcolor_picker.dart';
 import 'package:flutter_painter_v2/flutter_painter.dart';
@@ -92,8 +93,40 @@ class _HomePageState extends State<PaintingPage> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(content),
+        duration: const Duration(seconds: 5),
       ),
     );
+  }
+
+  void _saveFileToStorage() async {
+    final imageBytes = await _painterState.controller
+        .renderImage(const Size(512, 512))
+        .then<Uint8List?>((ui.Image image) => image.pngBytes);
+
+    if (imageBytes != null) {
+      String path = '';
+      try {
+        Directory? directory = Directory('/storage/emulated/0/Download');
+        if (Platform.isIOS) {
+          directory = await getDownloadsDirectory();
+        }
+        if (directory != null) {
+          String directoryPath = '${directory.path}/iec_images';
+          // Create the directory if it doesn't exist
+          await Directory(directoryPath).create(recursive: true);
+          final timestamp = DateTime.now().millisecondsSinceEpoch;
+          String filePath = '$directoryPath/$timestamp.png';
+          final file = await File(filePath).writeAsBytes(imageBytes);
+          path = file.path;
+          _showSnackBar('Saved: $path');
+        } else {
+          throw Exception('Directory does not exist!');
+        }
+      } catch (e) {
+        _showSnackBar('Image saving error: $e');
+        debugPrint(e.toString());
+      }
+    }
   }
 
   @override
@@ -171,35 +204,8 @@ class _HomePageState extends State<PaintingPage> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          final imageBytes = await _painterState.controller
-              .renderImage(const Size(512, 512))
-              .then<Uint8List?>((ui.Image image) => image.pngBytes);
-
-          if (imageBytes != null) {
-            String path = '';
-            try {
-              Directory? directory = Directory('/storage/emulated/0/Download');
-              if (Platform.isIOS) {
-                directory = await getDownloadsDirectory();
-              }
-              if (directory != null) {
-                String directoryPath = '${directory.path}/iec_images';
-                // Create the directory if it doesn't exist
-                await Directory(directoryPath).create(recursive: true);
-                final timestamp = DateTime.now().millisecondsSinceEpoch;
-                String filePath = '$directoryPath/$timestamp.png';
-                final file = await File(filePath).writeAsBytes(imageBytes);
-                path = file.path;
-                _showSnackBar('Saved: $path');
-              } else {
-                throw Exception('Directory does not exist!');
-              }
-            } catch (e) {
-              _showSnackBar('Image saving error: $e');
-              debugPrint(e.toString());
-            }
-          }
+        onPressed: () {
+          _saveFileToStorage();
         },
         tooltip: 'Save Image',
         child: const Icon(Icons.image),
@@ -222,6 +228,14 @@ class _HomePageState extends State<PaintingPage> {
               break;
             case BottomNavigationType.sticker:
               _painterState.showStickerTab(true);
+              final List<ConnectivityResult> connectivityResult =
+                  await Connectivity().checkConnectivity();
+              final hasInternet =
+                  connectivityResult.contains(ConnectivityResult.wifi) ||
+                      connectivityResult.contains(ConnectivityResult.mobile);
+              if (!hasInternet) {
+                _showSnackBar('Need internet connection to receive Stickers!');
+              }
             case BottomNavigationType.idle:
               _painterState.setFreeStyleNone();
               break;
