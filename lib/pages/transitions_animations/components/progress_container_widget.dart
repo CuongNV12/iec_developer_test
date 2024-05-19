@@ -26,58 +26,64 @@ class _ProgressContainerWidgetState extends State<ProgressContainerWidget>
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    return StreamBuilder<Color>(
-        stream: widget.stream,
-        initialData: Colors.grey[300],
-        builder: (context, snapshot) {
-          final color = snapshot.data!;
-          final isHighLight = color == Colors.grey;
-          return Column(
-            children: [
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                width: size.width,
-                margin: const EdgeInsets.symmetric(
-                  horizontal: 32,
+    return LayoutBuilder(
+      builder: (context, constraint) {
+        return StreamBuilder<Color>(
+          stream: widget.stream,
+          initialData: Colors.grey[300],
+          builder: (context, snapshot) {
+            final color = snapshot.data!;
+            final isHighLight = color == Colors.grey;
+            return Column(
+              children: [
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  width: size.width,
+                  margin: const EdgeInsets.symmetric(
+                    horizontal: 32,
+                  ),
+                  padding: EdgeInsets.all(isHighLight ? 15 : 16),
+                  decoration: BoxDecoration(
+                    color: color,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  // alignment: Alignment.center,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        children: [
+                          const Expanded(
+                            child: Text('NEXT MILESTONE'),
+                          ),
+                          Lottie.asset(
+                            key: widget.destinationKey,
+                            fit: BoxFit.cover,
+                            'assets/lottie/ic_heart.json',
+                            width: 20,
+                            height: 20,
+                            controller: AnimationController(
+                              vsync: this,
+                              duration: const Duration(milliseconds: 0),
+                            )..forward(),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(widget.value),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      LinearProgressBar(
+                        width: constraint.maxWidth,
+                        percent: widget.percent,
+                      ),
+                    ],
+                  ),
                 ),
-                padding: EdgeInsets.all(isHighLight ? 15 : 16),
-                decoration: BoxDecoration(
-                  color: color,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                // alignment: Alignment.center,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      children: [
-                        const Expanded(
-                          child: Text('NEXT MILESTONE'),
-                        ),
-                        Lottie.asset(
-                          key: widget.destinationKey,
-                          fit: BoxFit.cover,
-                          'assets/lottie/ic_heart.json',
-                          width: 20,
-                          height: 20,
-                          controller: AnimationController(
-                            vsync: this,
-                            duration: const Duration(milliseconds: 0),
-                          )..forward(),
-                        ),
-                        const SizedBox(width: 4),
-                        Text(widget.value),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    LinearProgressBar(
-                      percent: widget.percent,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          );
-        });
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 }

@@ -8,6 +8,7 @@ class AnimatedIconWidget extends StatefulWidget {
   final Coordinate coordinatesDistance;
   final double left;
   final void Function()? onEnd;
+  final AnimationController? controller;
 
   const AnimatedIconWidget({
     required this.isMoved,
@@ -15,6 +16,7 @@ class AnimatedIconWidget extends StatefulWidget {
     required this.coordinatesDistance,
     required this.left,
     this.onEnd,
+    this.controller,
     super.key,
   });
 
@@ -28,9 +30,10 @@ class _AnimatedIconWidgetState extends State<AnimatedIconWidget>
 
   @override
   void initState() {
-    _controller = AnimationController(
-      vsync: this,
-    );
+    _controller = widget.controller ??
+        AnimationController(
+          vsync: this,
+        );
     super.initState();
   }
 
@@ -53,9 +56,10 @@ class _AnimatedIconWidgetState extends State<AnimatedIconWidget>
         fit: BoxFit.cover,
         controller: _controller,
         onLoaded: (composition) {
-          _controller
-            ..duration = composition.duration
-            ..forward();
+          _controller.duration = composition.duration;
+          if (widget.controller == null) {
+            _controller.forward();
+          }
         },
       ),
     );
