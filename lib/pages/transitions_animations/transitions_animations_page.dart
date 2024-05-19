@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:iec_developer_test/pages/transitions_animations/components/animated_icon_widget.dart';
 import 'package:iec_developer_test/pages/transitions_animations/components/coordinates.dart';
 import 'package:iec_developer_test/pages/transitions_animations/components/global_key_extension.dart';
-import 'package:iec_developer_test/pages/transitions_animations/components/linear_progress_bar.dart';
+import 'package:iec_developer_test/pages/transitions_animations/components/progress_container_widget.dart';
+import 'package:lottie/lottie.dart';
 
 class TransitionsAnimationsPage extends StatefulWidget {
   const TransitionsAnimationsPage({super.key});
@@ -13,7 +16,8 @@ class TransitionsAnimationsPage extends StatefulWidget {
       _TransitionsAnimationsPageState();
 }
 
-class _TransitionsAnimationsPageState extends State<TransitionsAnimationsPage> {
+class _TransitionsAnimationsPageState extends State<TransitionsAnimationsPage>
+    with TickerProviderStateMixin {
   final GlobalKey _startKeyHeart1 = GlobalKey();
   final GlobalKey _startKeyHeart2 = GlobalKey();
 
@@ -23,14 +27,25 @@ class _TransitionsAnimationsPageState extends State<TransitionsAnimationsPage> {
   Coordinate _coordinatesDistanceHeart2 = Coordinate();
 
   // Coordinate _coordinatesDistanceHeart3 = Coordinate();
-  bool _isMoved = false;
+  bool _isMoved1 = false;
+  bool _isMoved2 = false;
   bool _isAnimationEnd = false;
   int _value = 2;
   final int _total = 10;
   late double _indicatorValue = _value / _total;
+  late final AnimationController _animationController;
+  final StreamController<Color> _containerColorStream =
+      StreamController<Color>();
+
+  Stream<Color> get _containerColorStreamController =>
+      _containerColorStream.stream;
 
   @override
   void initState() {
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _coordinatesDistanceHeart1 =
           _calculateCoordinateDistance(_startKeyHeart1);
@@ -38,8 +53,17 @@ class _TransitionsAnimationsPageState extends State<TransitionsAnimationsPage> {
           _calculateCoordinateDistance(_startKeyHeart2);
       // _coordinatesDistanceHeart3 =
       //     _calculateCoordinateDistance(_startKeyHeart3);
+      _startAnimation();
     });
     super.initState();
+  }
+
+  void _startAnimation() {
+    Future.delayed(const Duration(milliseconds: 1000), () {
+      setState(() {
+        _isMoved1 = !_isMoved1;
+      });
+    });
   }
 
   Coordinate _calculateCoordinateDistance(GlobalKey key) {
@@ -48,6 +72,16 @@ class _TransitionsAnimationsPageState extends State<TransitionsAnimationsPage> {
     return Coordinate(
       dx: (coordinateDestination.dx - coordinateStart.dx),
       dy: (coordinateDestination.dy - coordinateStart.dy),
+    );
+  }
+
+  void _highLightProgressBlock() {
+    _containerColorStream.add(Colors.grey);
+    Future.delayed(
+      const Duration(milliseconds: 200),
+      () {
+        _containerColorStream.add(Colors.grey[300] ?? Colors.grey);
+      },
     );
   }
 
@@ -143,51 +177,11 @@ class _TransitionsAnimationsPageState extends State<TransitionsAnimationsPage> {
                                 bottom: 0,
                                 left: 0,
                                 right: 0,
-                                child: Container(
-                                  width: size.width,
-                                  margin: const EdgeInsets.symmetric(
-                                      horizontal: 32),
-                                  padding: const EdgeInsets.all(16),
-                                  decoration: BoxDecoration(
-                                    color: Colors.grey[300],
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  // alignment: Alignment.center,
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Row(
-                                        children: [
-                                          const Expanded(
-                                            child: Text('NEXT MILESTONE'),
-                                          ),
-                                          SizedBox(
-                                            width: 20,
-                                            height: 20,
-                                            child: FittedBox(
-                                              key: _destinationKey,
-                                              child: const Icon(
-                                                Icons.star_border,
-                                              ),
-                                            ),
-                                          ),
-                                          const SizedBox(width: 4),
-                                          Text('$_value/$_total'),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 16),
-                                      // LinearProgressIndicator(
-                                      //   value: _indicatorValue,
-                                      //   color: Theme.of(context).primaryColor,
-                                      //   backgroundColor: Colors.white,
-                                      //   minHeight: 8,
-                                      //   borderRadius: BorderRadius.circular(4),
-                                      // ),
-                                      LinearProgressBar(
-                                        percent: _indicatorValue,
-                                      ),
-                                    ],
-                                  ),
+                                child: ProgressContainerWidget(
+                                  destinationKey: _destinationKey,
+                                  stream: _containerColorStreamController,
+                                  percent: _indicatorValue,
+                                  value: '$_value/$_total',
                                 ),
                               ),
                               Container(
@@ -202,10 +196,30 @@ class _TransitionsAnimationsPageState extends State<TransitionsAnimationsPage> {
                                 ),
                               ),
                               ..._iconsWidget(
+                                isMoved: _isMoved1,
                                 left: 48,
                                 iconKey: _startKeyHeart1,
                                 coordinatesDistance: _coordinatesDistanceHeart1,
                                 onEnd: () {
+                                  _highLightProgressBlock();
+                                  WidgetsBinding.instance
+                                      .addPostFrameCallback((_) {
+                                    setState(() {
+                                      _value = 3;
+                                      _indicatorValue = _value / _total;
+                                      _isMoved2 = !_isMoved2;
+                                    });
+                                  });
+                                },
+                              ),
+                              ..._iconsWidget(
+                                isMoved: _isMoved2,
+                                iconKey: _startKeyHeart2,
+                                coordinatesDistance: _coordinatesDistanceHeart2,
+                                left: 48 + 50 + 32,
+                                onEnd: () {
+                                  _animationController.forward();
+                                  _highLightProgressBlock();
                                   WidgetsBinding.instance
                                       .addPostFrameCallback((_) {
                                     setState(() {
@@ -216,21 +230,16 @@ class _TransitionsAnimationsPageState extends State<TransitionsAnimationsPage> {
                                   });
                                 },
                               ),
-                              ..._iconsWidget(
-                                iconKey: _startKeyHeart2,
-                                coordinatesDistance: _coordinatesDistanceHeart2,
-                                left: 48 + 50 + 32,
-                              ),
-                              const Positioned(
+                              Positioned(
                                 top: 16,
                                 left: 48 + 50 + 32 + 50 + 32,
-                                child: SizedBox(
+                                child: Lottie.asset(
+                                  fit: BoxFit.cover,
+                                  'assets/lottie/ic_heart.json',
                                   width: 50,
                                   height: 50,
-                                  child: FittedBox(
-                                    child: Icon(
-                                      Icons.star_border,
-                                    ),
+                                  controller: AnimationController(
+                                    vsync: this,
                                   ),
                                 ),
                               ),
@@ -250,31 +259,28 @@ class _TransitionsAnimationsPageState extends State<TransitionsAnimationsPage> {
                     ),
                   ),
                 ),
-                Padding(
-                  padding:
-                      const EdgeInsets.only(left: 32, right: 32, bottom: 32),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () {
-                            setState(() {
-                              _isMoved = !_isMoved;
-                            });
-                          },
-                          child: const Text('Redesign'),
+                if (_isAnimationEnd)
+                  Padding(
+                    padding:
+                        const EdgeInsets.only(left: 32, right: 32, bottom: 32),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () {},
+                            child: const Text('Redesign'),
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () {},
-                          child: const Text('Continue'),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () {},
+                            child: const Text('Continue'),
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
               ],
             ),
           ],
@@ -284,6 +290,7 @@ class _TransitionsAnimationsPageState extends State<TransitionsAnimationsPage> {
   }
 
   List<Widget> _iconsWidget({
+    required bool isMoved,
     required double left,
     required GlobalKey iconKey,
     required Coordinate coordinatesDistance,
@@ -293,18 +300,16 @@ class _TransitionsAnimationsPageState extends State<TransitionsAnimationsPage> {
       Positioned(
         top: 16,
         left: left,
-        child: SizedBox(
+        child: Lottie.asset(
+          'assets/lottie/ic_heart.json',
           width: 50,
           height: 50,
-          child: FittedBox(
-            child: Icon(
-              _isAnimationEnd ? Icons.star : Icons.star_border,
-            ),
-          ),
+          fit: BoxFit.cover,
+          controller: _animationController,
         ),
       ),
       AnimatedIconWidget(
-        isMoved: _isMoved,
+        isMoved: isMoved,
         iconKey: iconKey,
         coordinatesDistance: coordinatesDistance,
         left: left,
