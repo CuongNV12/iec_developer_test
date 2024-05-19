@@ -5,9 +5,9 @@ import 'package:flutter/services.dart';
 import 'package:iec_developer_test/pages/transitions_animations/components/animated_icon_widget.dart';
 import 'package:iec_developer_test/pages/transitions_animations/components/coordinates.dart';
 import 'package:iec_developer_test/pages/transitions_animations/components/global_key_extension.dart';
-import 'package:iec_developer_test/pages/transitions_animations/components/linear_progress_bar.dart';
 import 'package:iec_developer_test/pages/transitions_animations/components/progress_container_widget.dart';
 import 'package:lottie/lottie.dart';
+import 'package:showcaseview/showcaseview.dart';
 
 class TransitionsAnimationsPage extends StatefulWidget {
   const TransitionsAnimationsPage({super.key});
@@ -40,6 +40,7 @@ class _TransitionsAnimationsPageState extends State<TransitionsAnimationsPage>
   Offset _textOffset = const Offset(0, 0.5);
   double _bodyOpacity = 0;
   Offset _bodyOffset = const Offset(0, 0.1);
+  final GlobalKey _showCaseButton = GlobalKey();
 
   final StreamController<Color> _containerColorStream =
       StreamController<Color>();
@@ -301,34 +302,58 @@ class _TransitionsAnimationsPageState extends State<TransitionsAnimationsPage>
                     ),
                   ),
                 ),
-                AnimatedOpacity(
-                  opacity: _textOpacity,
-                  duration: const Duration(milliseconds: 500),
-                  child: Padding(
-                    padding:
-                        const EdgeInsets.only(left: 32, right: 32, bottom: 32),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: () {},
-                            child: const Text('Redesign'),
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: () {},
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red,
-                              foregroundColor: Colors.white,
+                ShowCaseWidget(
+                  builder: Builder(builder: (context) {
+                    return AnimatedOpacity(
+                      opacity: _textOpacity,
+                      duration: const Duration(milliseconds: 500),
+                      onEnd: () {
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          ShowCaseWidget.of(context).startShowCase(
+                            [_showCaseButton],
+                          );
+                        });
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.only(
+                            left: 32, right: 32, bottom: 32),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Showcase(
+                                key: _showCaseButton,
+                                description: 'Can you Perfect your Design?',
+                                overlayOpacity: 0,
+                                tooltipBackgroundColor: Colors.white,
+                                child: ElevatedButton(
+                                  onPressed: () {
+                                    WidgetsBinding.instance
+                                        .addPostFrameCallback((_) {
+                                      ShowCaseWidget.of(context).startShowCase(
+                                        [_showCaseButton],
+                                      );
+                                    });
+                                  },
+                                  child: const Text('Redesign'),
+                                ),
+                              ),
                             ),
-                            child: const Text('Continue'),
-                          ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: () {},
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.red,
+                                  foregroundColor: Colors.white,
+                                ),
+                                child: const Text('Continue'),
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                  ),
+                      ),
+                    );
+                  }),
                 ),
               ],
             ),
