@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:iec_developer_test/pages/painting/painting_page.dart';
+import 'package:iec_developer_test/pages/transitions_animations/transitions_animations_page.dart';
 
 void main() {
   runApp(const MyApp());
@@ -51,7 +52,19 @@ class _HomePageState extends State<HomePage> {
                   ),
                 );
               },
-              child: const Text('Painting Page'),
+              child: const Text('Part 1: Decorating'),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const TransitionsAnimationsPage(),
+                  ),
+                );
+              },
+              child: const Text('Part 2: Transitions and Animations'),
             ),
           ],
         ),
