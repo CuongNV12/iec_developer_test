@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:iec_developer_test/pages/transitions_animations/components/animated_icon_widget.dart';
 import 'package:iec_developer_test/pages/transitions_animations/components/coordinates.dart';
-import 'package:iec_developer_test/pages/transitions_animations/components/globalKey_extension.dart';
+import 'package:iec_developer_test/pages/transitions_animations/components/global_key_extension.dart';
 import 'package:iec_developer_test/pages/transitions_animations/components/linear_progress_bar.dart';
 
 class TransitionsAnimationsPage extends StatefulWidget {
@@ -200,32 +201,10 @@ class _TransitionsAnimationsPageState extends State<TransitionsAnimationsPage> {
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                               ),
-                              Positioned(
-                                top: 16,
+                              ..._iconsWidget(
                                 left: 48,
-                                child: SizedBox(
-                                  width: 50,
-                                  height: 50,
-                                  child: FittedBox(
-                                    child: Icon(
-                                      _isAnimationEnd
-                                          ? Icons.star
-                                          : Icons.star_border,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              AnimatedPositioned(
-                                duration:
-                                    Duration(milliseconds: _isMoved ? 500 : 0),
-                                top: _isMoved
-                                    ? _coordinatesDistanceHeart1.dy + 16
-                                    : 16,
-                                left: _isMoved
-                                    ? _coordinatesDistanceHeart1.dx + 48
-                                    : 48,
-                                width: _isMoved ? 20 : 50,
-                                height: _isMoved ? 20 : 50,
+                                iconKey: _startKeyHeart1,
+                                coordinatesDistance: _coordinatesDistanceHeart1,
                                 onEnd: () {
                                   WidgetsBinding.instance
                                       .addPostFrameCallback((_) {
@@ -236,48 +215,11 @@ class _TransitionsAnimationsPageState extends State<TransitionsAnimationsPage> {
                                     });
                                   });
                                 },
-                                child: FittedBox(
-                                  key: _startKeyHeart1,
-                                  child: const Icon(
-                                    Icons.star,
-                                  ),
-                                ),
                               ),
-                              Positioned(
-                                top: 16,
+                              ..._iconsWidget(
+                                iconKey: _startKeyHeart2,
+                                coordinatesDistance: _coordinatesDistanceHeart2,
                                 left: 48 + 50 + 32,
-                                child: SizedBox(
-                                  width: 50,
-                                  height: 50,
-                                  child: FittedBox(
-                                    child: Icon(
-                                      _isAnimationEnd
-                                          ? Icons.star
-                                          : Icons.star_border,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              AnimatedPositioned(
-                                duration:
-                                    Duration(milliseconds: _isMoved ? 500 : 0),
-                                top: _isMoved
-                                    ? _coordinatesDistanceHeart2.dy + 16
-                                    : 16,
-                                left: _isMoved
-                                    ? _coordinatesDistanceHeart2.dx +
-                                        48 +
-                                        50 +
-                                        32
-                                    : 48 + 50 + 32,
-                                width: _isMoved ? 20 : 50,
-                                height: _isMoved ? 20 : 50,
-                                child: FittedBox(
-                                  key: _startKeyHeart2,
-                                  child: const Icon(
-                                    Icons.star,
-                                  ),
-                                ),
                               ),
                               const Positioned(
                                 top: 16,
@@ -292,29 +234,6 @@ class _TransitionsAnimationsPageState extends State<TransitionsAnimationsPage> {
                                   ),
                                 ),
                               ),
-                              // AnimatedPositioned(
-                              //   duration:
-                              //       Duration(milliseconds: _isMoved ? 500 : 0),
-                              //   top: _isMoved
-                              //       ? _coordinatesDistanceHeart3.dy + 16
-                              //       : 16,
-                              //   left: _isMoved
-                              //       ? _coordinatesDistanceHeart3.dx +
-                              //           48 +
-                              //           50 +
-                              //           32 +
-                              //           50 +
-                              //           32
-                              //       : 48 + 50 + 32 + 50 + 32,
-                              //   width: _isMoved ? 20 : 50,
-                              //   height: _isMoved ? 20 : 50,
-                              //   child: FittedBox(
-                              //     key: _startKeyHeart3,
-                              //     child: const Icon(
-                              //       Icons.star_border,
-                              //     ),
-                              //   ),
-                              // ),
                             ],
                           ),
                         ),
@@ -362,5 +281,35 @@ class _TransitionsAnimationsPageState extends State<TransitionsAnimationsPage> {
         ),
       ),
     );
+  }
+
+  List<Widget> _iconsWidget({
+    required double left,
+    required GlobalKey iconKey,
+    required Coordinate coordinatesDistance,
+    void Function()? onEnd,
+  }) {
+    return [
+      Positioned(
+        top: 16,
+        left: left,
+        child: SizedBox(
+          width: 50,
+          height: 50,
+          child: FittedBox(
+            child: Icon(
+              _isAnimationEnd ? Icons.star : Icons.star_border,
+            ),
+          ),
+        ),
+      ),
+      AnimatedIconWidget(
+        isMoved: _isMoved,
+        iconKey: iconKey,
+        coordinatesDistance: coordinatesDistance,
+        left: left,
+        onEnd: onEnd,
+      ),
+    ];
   }
 }
